@@ -49,7 +49,7 @@ int main() {
 	SOCKADDR_IN addr;
 	int size_of_len = sizeof(addr);
 	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	addr.sin_port = htons(7777);
+	addr.sin_port = htons(4444);
 	addr.sin_family = AF_INET;
 
 	Connection = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
