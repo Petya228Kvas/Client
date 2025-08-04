@@ -8,8 +8,8 @@
 #define _WINSOCK_DEPREACTED_NO_WARNINGS // Отключение предупреждений WinSock
 using namespace std; // Использование стандартного пространства имён
 
-const uint64_t p = 3557;
-const uint64_t q = 2579;
+const uint64_t p = 3557;//число 1 для n
+const uint64_t q = 2579;//число 2 для n 
 const uint64_t n = p * q; //Public key modulus
 
 const uint64_t phi = (p - 1) * (q - 1);
@@ -28,7 +28,7 @@ static uint64_t modInverse(uint64_t a, uint64_t m) {
     }
     if (x < 0) x += m0;
     return x;
-}
+}//получение обратного числа для d
 const uint64_t d = modInverse(e, phi);
 
 static uint64_t power(uint64_t base, uint64_t exponent, uint64_t modulus) {
@@ -44,7 +44,7 @@ static uint64_t power(uint64_t base, uint64_t exponent, uint64_t modulus) {
     return result;
 }
 
-static vector<uint64_t> Encrypting_Message(string msg, int sum);
+static vector<uint64_t> Encrypting_Message(string msg, int sum);//определители
 static string Decrypting_Message(const vector<uint64_t>& enc_msg);
 static char decrypt(uint64_t x, int volume);
 static uint64_t encrypt(unsigned char x, int volume);
@@ -63,15 +63,15 @@ void Users_Handler() {
             break;
         }
         if (enc_msg_size == 0) continue;
-        vector<uint64_t> enc_msg;
-        enc_msg.resize(enc_msg_size);
+        vector<uint64_t> enc_msg;//создание числового вектора 
+        enc_msg.resize(enc_msg_size);// определение размера вектора по размеру сообщение
 
-        result = recv(Connection, reinterpret_cast<char*>(enc_msg.data()), enc_msg_size * sizeof(uint64_t), NULL);
+        result = recv(Connection, reinterpret_cast<char*>(enc_msg.data())/*преобразование указателя типа массива в тип char */, enc_msg_size * sizeof(uint64_t)/*умножение размера сообщения на тип uint64_t*/, NULL);//Принятие сообщениея
         if (result <= 0) {
             isRunning = false;
             break;
         }
-        string dec_msg = Decrypting_Message(enc_msg);
+        string dec_msg = Decrypting_Message(enc_msg);//дешифровка сообщения
         cout << ">> " << dec_msg << endl; // Вывод сообщения на экран
     }
 }
@@ -143,11 +143,11 @@ int main() {
 
 static vector<uint64_t> Encrypting_Message(string msg, int sum) {
     vector<uint64_t> encrypt_msg;
-    encrypt_msg.push_back(power(static_cast<uint64_t>(sum),e,n));
+    encrypt_msg.push_back(power(static_cast<uint64_t>(sum),e,n));//запись количества пробелов в массив с шифровкой
     for (unsigned char c:msg) {
-        encrypt_msg.push_back(encrypt(c, sum));
+        encrypt_msg.push_back(encrypt(c, sum));//шифровка каждого символа в массив
     }
-    return encrypt_msg;
+    return encrypt_msg;//возвращаем вектор зашифрованного сообщения
 }
 
 static string Decrypting_Message(const vector<uint64_t>& enc_msg) {
@@ -155,11 +155,11 @@ static string Decrypting_Message(const vector<uint64_t>& enc_msg) {
     if (enc_msg.empty()) {
         return "";
     }
-    uint64_t val = power(enc_msg[0], d, n);
-    int offset = static_cast<int>(val);
+    uint64_t val = power(enc_msg[0], d, n);//определяем первую цифру полученного сообщения 
+    int offset = static_cast<int>(val);//преобразуем в int
 
     for (size_t i = 1; i < enc_msg.size(); ++i) {
-        dec_msg += static_cast<char>(decrypt(enc_msg[i], offset));
+        dec_msg += static_cast<char>(decrypt(enc_msg[i], offset));//получаем строку из дешифровки каждого символа
     }
     return dec_msg;
 }
