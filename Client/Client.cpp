@@ -8,30 +8,71 @@
 #define _WINSOCK_DEPREACTED_NO_WARNINGS // Отключение предупреждений WinSock
 using namespace std; // Использование стандартного пространства имён
 
+const uint64_t p = 3557;
+const uint64_t q = 2579;
+const uint64_t n = p * q; //Public key modulus
+
+const uint64_t phi = (p - 1) * (q - 1);
+const uint64_t e = 17; // Public exponent
+static uint64_t modInverse(uint64_t a, uint64_t m) {
+    uint64_t m0 = m;
+    uint64_t y = 0, x = 1;
+    if (m == 1) return 0;
+    while (a > 1) {
+        uint64_t q = a / m;
+        uint64_t t = m;
+        m = a % m, a = t;
+        t = y;
+        y = x - q * y;
+        x = t;
+    }
+    if (x < 0) x += m0;
+    return x;
+}
+const uint64_t d = modInverse(e, phi);
+
+static uint64_t power(uint64_t base, uint64_t exponent, uint64_t modulus) {
+    if (modulus == 1) return 0;
+    uint64_t result = 1;
+    base = base % modulus;
+    while (exponent > 0) {
+        if (exponent & 1)
+            result = (result * base) % modulus;
+        base = (base * base) % modulus;
+        exponent >>= 1;
+    }
+    return result;
+}
+
+static vector<uint64_t> Encrypting_Message(string msg, int sum);
+static string Decrypting_Message(const vector<uint64_t>& enc_msg);
+static char decrypt(uint64_t x, int volume);
+static uint64_t encrypt(unsigned char x, int volume);
+
 SOCKET Connection; // Глобальная переменная для хранения сокета соединения
 bool isRunning = true; // Флаг для управления работой клиента
 
 // Функция для обработки входящих сообщений от сервера в отдельном потоке
 void Users_Handler() {
     while (isRunning) {
-        int msg_size = 0;
+        int enc_msg_size = 0;
         // Получение размера входящего сообщения
-        int result = recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+        int result = recv(Connection, (char*)&enc_msg_size, sizeof(int), NULL);
         if (result <= 0) {
             isRunning = false;
             break;
         }
-        char* msg = new char[msg_size + 1]; // Выделение памяти под сообщение
-        msg[msg_size] = '\0'; // Завершение строки
-        // Получение самого сообщения
-        result = recv(Connection, msg, msg_size, NULL);
+        if (enc_msg_size == 0) continue;
+        vector<uint64_t> enc_msg;
+        enc_msg.resize(enc_msg_size);
+
+        result = recv(Connection, reinterpret_cast<char*>(enc_msg.data()), enc_msg_size * sizeof(uint64_t), NULL);
         if (result <= 0) {
             isRunning = false;
-            delete[] msg;
             break;
         }
-        cout << msg << endl; // Вывод сообщения на экран
-        delete[] msg; // Освобождение памяти
+        string dec_msg = Decrypting_Message(enc_msg);
+        cout << ">> " << dec_msg << endl; // Вывод сообщения на экран
     }
 }
 
@@ -74,13 +115,23 @@ int main() {
             cout << "Connection is invalid." << endl;
             break;
         }
+        int sum = 1;
         getline(cin, umsg); // Ввод сообщения пользователем
         if (umsg.empty()) {
             continue;
         }
-        int msg_size = umsg.size(); // Размер сообщения
-        send(Connection, (char*)&msg_size, sizeof(int), NULL); // Отправка размера сообщения
-        send(Connection, umsg.c_str(), msg_size, NULL); // Отправка самого сообщения
+        for (char j : umsg) {
+            if (j == ' ') {
+                sum++;
+            }
+            else continue;
+        }
+
+        vector<uint64_t> enc_msg = Encrypting_Message(umsg, sum);
+
+        int enc_msg_size = enc_msg.size(); // Размер сообщения
+        send(Connection, (char*)&enc_msg_size, sizeof(int), NULL); // Отправка размера сообщения
+        send(Connection, reinterpret_cast<const char*>(enc_msg.data()), enc_msg_size * sizeof(uint64_t), NULL); // Отправка самого сообщения
         Sleep(10); // Короткая задержка
     }
     
@@ -88,4 +139,36 @@ int main() {
     closesocket(Connection); // Закрытие сокета
     WSACleanup(); // Очистка ресурсов WinSock
     return 0;
+}
+
+static vector<uint64_t> Encrypting_Message(string msg, int sum) {
+    vector<uint64_t> encrypt_msg;
+    encrypt_msg.push_back(power(static_cast<uint64_t>(sum),e,n));
+    for (unsigned char c:msg) {
+        encrypt_msg.push_back(encrypt(c, sum));
+    }
+    return encrypt_msg;
+}
+
+static string Decrypting_Message(const vector<uint64_t>& enc_msg) {
+    string dec_msg;
+    if (enc_msg.empty()) {
+        return "";
+    }
+    uint64_t val = power(enc_msg[0], d, n);
+    int offset = static_cast<int>(val);
+
+    for (size_t i = 1; i < enc_msg.size(); ++i) {
+        dec_msg += static_cast<char>(decrypt(enc_msg[i], offset));
+    }
+    return dec_msg;
+}
+
+static char decrypt(uint64_t x, int volume) {
+    uint64_t res = power(x, d, n);
+    return static_cast<unsigned char>(res - volume);
+}
+
+static uint64_t encrypt(unsigned char x, int volume) {
+    return power(static_cast<uint64_t>(x) + volume, e, n);
 }
