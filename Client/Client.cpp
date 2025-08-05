@@ -4,6 +4,7 @@
 #include <WinSock2.h> // Подключение библиотеки для работы с сокетами Windows
 #include <string> // Для работы со строками std::string
 #include <vector> // Для работы с векторами (не используется в этом коде)
+#include <Windows.h>
 
 #define _WINSOCK_DEPREACTED_NO_WARNINGS // Отключение предупреждений WinSock
 using namespace std; // Использование стандартного пространства имён
@@ -95,11 +96,14 @@ int main() {
     // Создание сокета
     Connection = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     // Подключение к серверу
-    if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0)
+    if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0) {
         cout << "Not connected.";
-    else 
+        MessageBeep(MB_ICONERROR);
+    }
+    else {
         cout << "Connected." << endl;
-
+        MessageBeep(MB_OK);
+    }
     // Создание отдельного потока для приёма сообщений от сервера
     DWORD threadID;
     HANDLE hThread = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)Users_Handler, NULL, NULL, &threadID);
@@ -113,6 +117,7 @@ int main() {
     while (isRunning) {
         if (Connection == INVALID_SOCKET) {
             cout << "Connection is invalid." << endl;
+            MessageBeep(MB_ICONERROR);
             break;
         }
         int sum = 1;
