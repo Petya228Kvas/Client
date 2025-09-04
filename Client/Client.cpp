@@ -89,7 +89,7 @@ int main() {
 
     SOCKADDR_IN addr; // Структура для хранения адреса сервера
     int size_of_len = sizeof(addr);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // IP-адрес сервера (локальный)
+    addr.sin_addr.s_addr = inet_addr("31.173.243.253"); // IP-адрес сервера (локальный)
     addr.sin_port = htons(4444); // Порт сервера
     addr.sin_family = AF_INET; // Семейство адресов (IPv4)
 
